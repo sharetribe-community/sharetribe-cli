@@ -30,6 +30,6 @@ export async function createProcess(
     } else {
       printError('Failed to create process');
     }
-    process.exit(1);
+    process.exitCode = 1; return;
   }
 }

@@ -31,7 +31,7 @@ async function getStatus(marketplace: string): Promise<void> {
     } else {
       printError('Failed to get listing approval status');
     }
-    process.exit(1);
+    process.exitCode = 1; return;
   }
 }
 
@@ -48,7 +48,7 @@ async function enableApprovals(marketplace: string): Promise<void> {
     } else {
       printError('Failed to enable listing approvals');
     }
-    process.exit(1);
+    process.exitCode = 1; return;
   }
 }
 
@@ -65,7 +65,7 @@ async function disableApprovals(marketplace: string): Promise<void> {
     } else {
       printError('Failed to disable listing approvals');
     }
-    process.exit(1);
+    process.exitCode = 1; return;
   }
 }
 
@@ -84,7 +84,7 @@ export function registerListingApprovalCommand(program: Command): void {
     const marketplace = opts.marketplace || program.opts().marketplace;
     if (!marketplace) {
       console.error('Error: --marketplace is required');
-      process.exit(1);
+      process.exitCode = 1; return;
     }
     await getStatus(marketplace);
   });
@@ -99,7 +99,7 @@ export function registerListingApprovalCommand(program: Command): void {
       const marketplace = opts.marketplace || program.opts().marketplace;
       if (!marketplace) {
         console.error('Error: --marketplace is required');
-        process.exit(1);
+        process.exitCode = 1; return;
       }
       await enableApprovals(marketplace);
     });
@@ -114,7 +114,7 @@ export function registerListingApprovalCommand(program: Command): void {
       const marketplace = opts.marketplace || program.opts().marketplace;
       if (!marketplace) {
         console.error('Error: --marketplace is required');
-        process.exit(1);
+        process.exitCode = 1; return;
       }
       await disableApprovals(marketplace);
     });

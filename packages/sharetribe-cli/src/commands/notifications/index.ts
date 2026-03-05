@@ -79,7 +79,7 @@ async function sendNotification(
     } else {
       printError('Failed to send notification');
     }
-    process.exit(1);
+    process.exitCode = 1; return;
   }
 }
 
@@ -162,7 +162,7 @@ async function previewNotification(
     const shutdown = () => {
       console.log('\nShutting down preview server...');
       server.close(() => {
-        process.exit(0);
+        process.exitCode = 0; return;
       });
     };
 
@@ -175,7 +175,7 @@ async function previewNotification(
     } else {
       printError('Failed to preview notification');
     }
-    process.exit(1);
+    process.exitCode = 1; return;
   }
 }
 
@@ -198,7 +198,7 @@ export function registerNotificationsCommands(program: Command): void {
       const marketplace = opts.marketplace || program.opts().marketplace;
       if (!marketplace) {
         console.error('Error: --marketplace is required');
-        process.exit(1);
+        process.exitCode = 1; return;
       }
       await previewNotification(marketplace, opts.template, opts.context);
     });
@@ -214,7 +214,7 @@ export function registerNotificationsCommands(program: Command): void {
       const marketplace = opts.marketplace || program.opts().marketplace;
       if (!marketplace) {
         console.error('Error: --marketplace is required');
-        process.exit(1);
+        process.exitCode = 1; return;
       }
       await sendNotification(marketplace, opts.template, opts.context);
     });

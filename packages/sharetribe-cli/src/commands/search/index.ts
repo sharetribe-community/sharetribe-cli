@@ -58,7 +58,7 @@ async function setSearchSchema(marketplace: string, opts: SetSchemaOptions): Pro
     } else {
       printError('Failed to set search schema');
     }
-    process.exit(1);
+    process.exitCode = 1; return;
   }
 }
 
@@ -82,7 +82,7 @@ async function unsetSearchSchema(marketplace: string, opts: UnsetSchemaOptions):
     } else {
       printError('Failed to unset search schema');
     }
-    process.exit(1);
+    process.exitCode = 1; return;
   }
 }
 
@@ -183,7 +183,7 @@ async function listSearchSchemas(marketplace: string): Promise<void> {
     } else {
       printError('Failed to list search schemas');
     }
-    process.exit(1);
+    process.exitCode = 1; return;
   }
 }
 
@@ -199,7 +199,7 @@ export function registerSearchCommands(program: Command): void {
       const marketplace = options.marketplace || program.opts().marketplace;
       if (!marketplace) {
         console.error('Error: --marketplace is required');
-        process.exit(1);
+        process.exitCode = 1; return;
       }
       await listSearchSchemas(marketplace);
     });
@@ -225,7 +225,7 @@ export function registerSearchCommands(program: Command): void {
       const marketplace = opts.marketplace || program.opts().marketplace;
       if (!marketplace) {
         console.error('Error: --marketplace is required');
-        process.exit(1);
+        process.exitCode = 1; return;
       }
       await setSearchSchema(marketplace, {
         key: opts.key,
@@ -255,7 +255,7 @@ export function registerSearchCommands(program: Command): void {
       const marketplace = opts.marketplace || program.opts().marketplace;
       if (!marketplace) {
         console.error('Error: --marketplace is required');
-        process.exit(1);
+        process.exitCode = 1; return;
       }
       await unsetSearchSchema(marketplace, {
         key: opts.key,

@@ -47,7 +47,7 @@ export function registerProcessCommands(program: Command): void {
       const marketplace = options.marketplace || program.opts().marketplace;
       if (!marketplace) {
         console.error('Error: --marketplace is required');
-        process.exit(1);
+        process.exitCode = 1; return;
       }
       await listProcesses(marketplace, options.process);
     });
@@ -63,7 +63,7 @@ export function registerProcessCommands(program: Command): void {
       const marketplace = options.marketplace || program.opts().marketplace;
       if (!marketplace) {
         console.error('Error: --marketplace is required');
-        process.exit(1);
+        process.exitCode = 1; return;
       }
       await createProcess(marketplace, options.process, options.path);
     });
@@ -79,7 +79,7 @@ export function registerProcessCommands(program: Command): void {
       const marketplace = options.marketplace || program.opts().marketplace;
       if (!marketplace) {
         console.error('Error: --marketplace is required');
-        process.exit(1);
+        process.exitCode = 1; return;
       }
       await pushProcess(marketplace, options.process, options.path);
     });
@@ -97,7 +97,7 @@ export function registerProcessCommands(program: Command): void {
       const marketplace = options.marketplace || program.opts().marketplace;
       if (!marketplace) {
         console.error('Error: --marketplace is required');
-        process.exit(1);
+        process.exitCode = 1; return;
       }
       await pullProcess(marketplace, options.process, options.path, options.version, options.alias);
     });
@@ -115,7 +115,7 @@ export function registerProcessCommands(program: Command): void {
       const marketplace = options.marketplace || program.opts().marketplace;
       if (!marketplace) {
         console.error('Error: --marketplace is required');
-        process.exit(1);
+        process.exitCode = 1; return;
       }
       await createAlias(marketplace, options.process, parseInt(options.version), options.alias);
     });
@@ -132,7 +132,7 @@ export function registerProcessCommands(program: Command): void {
       const marketplace = options.marketplace || program.opts().marketplace;
       if (!marketplace) {
         console.error('Error: --marketplace is required');
-        process.exit(1);
+        process.exitCode = 1; return;
       }
       await updateAlias(marketplace, options.process, parseInt(options.version), options.alias);
     });
@@ -148,7 +148,7 @@ export function registerProcessCommands(program: Command): void {
       const marketplace = options.marketplace || program.opts().marketplace;
       if (!marketplace) {
         console.error('Error: --marketplace is required');
-        process.exit(1);
+        process.exitCode = 1; return;
       }
       await deleteAlias(marketplace, options.process, options.alias);
     });
@@ -165,7 +165,7 @@ export function registerProcessCommands(program: Command): void {
       const marketplace = options.marketplace || program.opts().marketplace;
       if (!marketplace) {
         console.error('Error: --marketplace is required');
-        process.exit(1);
+        process.exitCode = 1; return;
       }
       await createOrPushAndCreateOrUpdateAlias(
         marketplace,
@@ -187,7 +187,7 @@ export function registerProcessCommands(program: Command): void {
       const marketplace = options.marketplace || program.opts().marketplace;
       if (!marketplace) {
         console.error('Error: --marketplace is required');
-        process.exit(1);
+        process.exitCode = 1; return;
       }
       await listProcesses(marketplace, options.process);
     });
@@ -202,7 +202,7 @@ export function registerProcessCommands(program: Command): void {
       const marketplace = options.marketplace || program.opts().marketplace;
       if (!marketplace) {
         console.error('Error: --marketplace is required');
-        process.exit(1);
+        process.exitCode = 1; return;
       }
       await createProcess(marketplace, options.process, options.path);
     });
@@ -217,7 +217,7 @@ export function registerProcessCommands(program: Command): void {
       const marketplace = options.marketplace || program.opts().marketplace;
       if (!marketplace) {
         console.error('Error: --marketplace is required');
-        process.exit(1);
+        process.exitCode = 1; return;
       }
       await pushProcess(marketplace, options.process, options.path);
     });
@@ -234,7 +234,7 @@ export function registerProcessCommands(program: Command): void {
       const marketplace = options.marketplace || program.opts().marketplace;
       if (!marketplace) {
         console.error('Error: --marketplace is required');
-        process.exit(1);
+        process.exitCode = 1; return;
       }
       await pullProcess(marketplace, options.process, options.path, options.version, options.alias);
     });
@@ -250,7 +250,7 @@ export function registerProcessCommands(program: Command): void {
       const marketplace = options.marketplace || program.opts().marketplace;
       if (!marketplace) {
         console.error('Error: --marketplace is required');
-        process.exit(1);
+        process.exitCode = 1; return;
       }
       await createAlias(marketplace, options.process, parseInt(options.version), options.alias);
     });
@@ -266,7 +266,7 @@ export function registerProcessCommands(program: Command): void {
       const marketplace = options.marketplace || program.opts().marketplace;
       if (!marketplace) {
         console.error('Error: --marketplace is required');
-        process.exit(1);
+        process.exitCode = 1; return;
       }
       await updateAlias(marketplace, options.process, parseInt(options.version), options.alias);
     });
@@ -281,7 +281,7 @@ export function registerProcessCommands(program: Command): void {
       const marketplace = options.marketplace || program.opts().marketplace;
       if (!marketplace) {
         console.error('Error: --marketplace is required');
-        process.exit(1);
+        process.exitCode = 1; return;
       }
       await deleteAlias(marketplace, options.process, options.alias);
     });
@@ -297,7 +297,7 @@ export function registerProcessCommands(program: Command): void {
       const marketplace = options.marketplace || program.opts().marketplace;
       if (!marketplace) {
         console.error('Error: --marketplace is required');
-        process.exit(1);
+        process.exitCode = 1; return;
       }
       await createOrPushAndCreateOrUpdateAlias(
         marketplace,

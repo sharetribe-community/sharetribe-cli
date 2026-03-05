@@ -62,6 +62,6 @@ export async function pushProcess(
     } else {
       printError('Failed to push process');
     }
-    process.exit(1);
+    process.exitCode = 1; return;
   }
 }

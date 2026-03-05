@@ -70,6 +70,6 @@ export async function listProcesses(marketplace: string, processName?: string): 
     } else {
       printError('Failed to list processes');
     }
-    process.exit(1);
+    process.exitCode = 1; return;
   }
 }

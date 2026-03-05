@@ -137,7 +137,7 @@ program
       const subCmd = targetCmd.commands.find(c => c.name() === cmdName);
       if (!subCmd) {
         console.error(`Unknown command: ${commandPath.join(' ')}`);
-        process.exit(1);
+        process.exitCode = 1; return;
       }
       targetCmd = subCmd;
     }

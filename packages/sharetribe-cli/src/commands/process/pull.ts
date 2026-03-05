@@ -76,6 +76,6 @@ export async function pullProcess(
     } else {
       printError('Failed to pull process');
     }
-    process.exit(1);
+    process.exitCode = 1; return;
   }
 }

@@ -441,7 +441,7 @@ async function pullAssets(
     } else {
       printError('Failed to pull assets');
     }
-    process.exit(1);
+    process.exitCode = 1; return;
   }
 }
 
@@ -583,7 +583,7 @@ async function pushAssets(
     } else {
       printError('Failed to push assets');
     }
-    process.exit(1);
+    process.exitCode = 1; return;
   }
 }
 
@@ -605,7 +605,7 @@ export function registerAssetsCommands(program: Command): void {
       const marketplace = opts.marketplace || program.opts().marketplace;
       if (!marketplace) {
         console.error('Error: --marketplace is required');
-        process.exit(1);
+        process.exitCode = 1; return;
       }
       await pullAssets(marketplace, opts.path, opts.version, opts.prune);
     });
@@ -621,7 +621,7 @@ export function registerAssetsCommands(program: Command): void {
       const marketplace = opts.marketplace || program.opts().marketplace;
       if (!marketplace) {
         console.error('Error: --marketplace is required');
-        process.exit(1);
+        process.exitCode = 1; return;
       }
       await pushAssets(marketplace, opts.path, opts.prune);
     });

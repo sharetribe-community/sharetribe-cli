@@ -132,7 +132,7 @@ async function queryEvents(
     } else {
       printError('Failed to query events');
     }
-    process.exit(1);
+    process.exitCode = 1; return;
   }
 }
 
@@ -198,7 +198,7 @@ async function tailEvents(
     const shutdown = () => {
       console.log('\nStopping tail...');
       stopPolling();
-      process.exit(0);
+      process.exitCode = 0; return;
     };
 
     process.on('SIGINT', shutdown);
@@ -210,7 +210,7 @@ async function tailEvents(
     } else {
       printError('Failed to tail events');
     }
-    process.exit(1);
+    process.exitCode = 1; return;
   }
 }
 
@@ -240,7 +240,7 @@ export function registerEventsCommand(program: Command): void {
     if (!marketplace) {
       console.error('Could not parse arguments:');
       console.error('--marketplace is required');
-      process.exit(1);
+      process.exitCode = 1; return;
     }
 
     await queryEvents(marketplace, {
@@ -274,7 +274,7 @@ export function registerEventsCommand(program: Command): void {
       if (!marketplace) {
         console.error('Could not parse arguments:');
         console.error('--marketplace is required');
-        process.exit(1);
+        process.exitCode = 1; return;
       }
 
       await tailEvents(marketplace, {

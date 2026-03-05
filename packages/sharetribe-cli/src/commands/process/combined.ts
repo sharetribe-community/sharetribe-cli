@@ -57,6 +57,6 @@ export async function createOrPushAndCreateOrUpdateAlias(
     } else {
       printError('Failed to create/push process and alias');
     }
-    process.exit(1);
+    process.exitCode = 1; return;
   }
 }

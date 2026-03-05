@@ -30,7 +30,7 @@ export async function createAlias(
     } else {
       printError('Failed to create alias');
     }
-    process.exit(1);
+    process.exitCode = 1; return;
   }
 }
 
@@ -55,7 +55,7 @@ export async function updateAlias(
     } else {
       printError('Failed to update alias');
     }
-    process.exit(1);
+    process.exitCode = 1; return;
   }
 }
 
@@ -77,6 +77,6 @@ export async function deleteAlias(
     } else {
       printError('Failed to delete alias');
     }
-    process.exit(1);
+    process.exitCode = 1; return;
   }
 }

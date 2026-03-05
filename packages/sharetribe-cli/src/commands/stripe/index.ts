@@ -72,7 +72,7 @@ async function updateStripeVersion(
       const confirmed = await promptForConfirmation();
       if (!confirmed) {
         console.log('Cancelled.');
-        process.exit(0);
+        process.exitCode = 0; return;
       }
     }
 
@@ -86,7 +86,7 @@ async function updateStripeVersion(
     } else {
       printError('Failed to update Stripe API version');
     }
-    process.exit(1);
+    process.exitCode = 1; return;
   }
 }
 
@@ -107,7 +107,7 @@ export function registerStripeCommands(program: Command): void {
       const marketplace = opts.marketplace || program.opts().marketplace;
       if (!marketplace) {
         console.error('Error: --marketplace is required');
-        process.exit(1);
+        process.exitCode = 1; return;
       }
       await updateStripeVersion(marketplace, opts.version, opts.force);
     });
