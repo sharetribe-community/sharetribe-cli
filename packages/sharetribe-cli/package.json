@@ -1,6 +1,6 @@
 {
   "name": "sharetribe-community-cli",
-  "version": "1.16.9",
+  "version": "1.16.10",
   "description": "UNOFFICIAL Sharetribe CLI reimplementation built on sharetribe-flex-build-sdk - 100% compatible with official flex-cli",
   "type": "module",
   "main": "./dist/index.js",
