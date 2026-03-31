@@ -52,7 +52,7 @@
     "jsedn": "^0.4.1",
     "sharetribe-flex-build-sdk": "^1.16.9",
     "yargs": "^18.0.0",
-    "yauzl": "^3.2.0"
+    "yauzl": "^3.2.1"
   },
   "devDependencies": {
     "@types/inquirer": "^9.0.7",
