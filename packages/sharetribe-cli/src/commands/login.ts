@@ -3,7 +3,7 @@
  *
  * Must match flex-cli behavior exactly:
  * - Prompt for API key
- * - Store in ~/.config/flex-cli/auth.edn
+ * - Store in flex-cli's auth.edn (XDG_CONFIG_HOME, %LOCALAPPDATA% on Windows, else ~/.config)
  * - Display admin email on success
  */
 

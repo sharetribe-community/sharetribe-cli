@@ -67,7 +67,11 @@ export {
   readAuth,
   writeAuth,
   clearAuth,
+  configDirFor,
+  resolveConfigDir,
+  getAuthFilePath,
   type AuthData,
+  type ConfigDirEnv,
 } from './auth-storage.js';
 
 // Export asset management functions

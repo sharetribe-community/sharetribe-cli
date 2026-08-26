@@ -22,7 +22,7 @@ export interface ApiError {
 /**
  * Gets authentication headers from provided API key or auth file
  *
- * @param apiKey - Optional Sharetribe API key. If not provided, reads from ~/.config/flex-cli/auth.edn
+ * @param apiKey - Optional Sharetribe API key. If not provided, reads from flex-cli's auth.edn (see getAuthFilePath)
  * @returns Authorization headers
  */
 function getAuthHeaders(apiKey?: string): Record<string, string> {
@@ -73,7 +73,7 @@ function handleResponse<T>(response: HttpResponse): T {
 /**
  * Makes a GET request to the API
  *
- * @param apiKey - Optional Sharetribe API key. If not provided, reads from ~/.config/flex-cli/auth.edn
+ * @param apiKey - Optional Sharetribe API key. If not provided, reads from flex-cli's auth.edn (see getAuthFilePath)
  * @param endpoint - API endpoint path
  * @param queryParams - Optional query parameters
  * @returns API response
@@ -93,7 +93,7 @@ export async function apiGet<T>(apiKey: string | undefined, endpoint: string, qu
 /**
  * Makes a POST request to the API
  *
- * @param apiKey - Optional Sharetribe API key. If not provided, reads from ~/.config/flex-cli/auth.edn
+ * @param apiKey - Optional Sharetribe API key. If not provided, reads from flex-cli's auth.edn (see getAuthFilePath)
  * @param endpoint - API endpoint path
  * @param queryParams - Optional query parameters
  * @param body - Request body
@@ -119,7 +119,7 @@ export async function apiPost<T>(
 /**
  * Makes a DELETE request to the API
  *
- * @param apiKey - Optional Sharetribe API key. If not provided, reads from ~/.config/flex-cli/auth.edn
+ * @param apiKey - Optional Sharetribe API key. If not provided, reads from flex-cli's auth.edn (see getAuthFilePath)
  * @param endpoint - API endpoint path
  * @param queryParams - Optional query parameters
  * @returns API response
@@ -143,7 +143,7 @@ export async function apiDelete<T>(
 /**
  * Makes a multipart form-data POST request to the API
  *
- * @param apiKey - Optional Sharetribe API key. If not provided, reads from ~/.config/flex-cli/auth.edn
+ * @param apiKey - Optional Sharetribe API key. If not provided, reads from flex-cli's auth.edn (see getAuthFilePath)
  * @param endpoint - API endpoint path
  * @param queryParams - Query parameters
  * @param fields - Multipart form fields
@@ -180,7 +180,7 @@ export async function apiPostMultipart<T>(
  * Makes a POST request to the API with Transit-encoded body
  * Transit is a data format used by the Sharetribe API for certain endpoints
  *
- * @param apiKey - Optional Sharetribe API key. If not provided, reads from ~/.config/flex-cli/auth.edn
+ * @param apiKey - Optional Sharetribe API key. If not provided, reads from flex-cli's auth.edn (see getAuthFilePath)
  * @param endpoint - API endpoint path
  * @param queryParams - Query parameters
  * @param body - Request body (will be Transit-encoded)

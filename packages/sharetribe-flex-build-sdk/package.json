@@ -1,6 +1,6 @@
 {
   "name": "sharetribe-flex-build-sdk",
-  "version": "1.16.9",
+  "version": "1.16.10",
   "description": "SDK for building and managing Sharetribe Flex transaction processes",
   "type": "module",
   "main": "./dist/index.js",

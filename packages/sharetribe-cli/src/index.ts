@@ -8,8 +8,8 @@ import { Command } from 'commander';
 import { readFileSync, existsSync, writeFileSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { homedir } from 'node:os';
 import chalk from 'chalk';
+import { resolveConfigDir } from 'sharetribe-flex-build-sdk';
 import { version } from './commands/version.js';
 import { login } from './commands/login.js';
 import { logout } from './commands/logout.js';
@@ -32,7 +32,7 @@ const packageJson = JSON.parse(
 );
 
 // Print unofficial notice to stderr on first run only
-const configDir = join(homedir(), '.config', 'flex-cli');
+const configDir = resolveConfigDir();
 const noticeShownMarker = join(configDir, '.sharetribe-community-cli-notice-shown');
 if (!existsSync(noticeShownMarker)) {
   console.error(chalk.yellow('⚠️  NOTICE: This is an UNOFFICIAL Sharetribe CLI (community reimplementation).'));

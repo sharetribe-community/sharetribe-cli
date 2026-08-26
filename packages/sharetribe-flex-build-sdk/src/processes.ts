@@ -48,7 +48,7 @@ export interface AliasResult {
 /**
  * Lists all processes for a marketplace
  *
- * @param apiKey - Optional Sharetribe API key. If not provided, reads from ~/.config/flex-cli/auth.edn
+ * @param apiKey - Optional Sharetribe API key. If not provided, reads from flex-cli's auth.edn (see getAuthFilePath)
  * @param marketplace - Marketplace ID
  * @returns Array of processes with their latest versions
  */
