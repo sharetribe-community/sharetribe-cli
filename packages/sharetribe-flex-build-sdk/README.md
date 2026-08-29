@@ -98,12 +98,18 @@ await deleteAlias(apiKey, marketplace, 'my-process', 'release');
 import { parseProcessFile, serializeProcess } from 'sharetribe-flex-build-sdk';
 
 // Parse a process.edn file
-const process = parseProcessFile('./process.edn');
+const process = parseProcessFile('./ext/transaction-processes/default-booking/process.edn');
 console.log(process.name, process.states, process.transitions);
+```
 
+Sharetribe's process files declare neither `:name` nor `:states`, so `parseProcessFile` takes the name from the directory holding the file and derives the states from the transitions' `:from` and `:to`. Keywords come back with their namespace and without the leading colon, so a transition is `transition/accept` and an action is `action/privileged-set-line-items`. `from` and `actor` are absent on the transitions that have no `:from` or no `:actor`, which is every initial transition and every time-based one.
+
+```typescript
 // Serialize back to EDN format
 const ednString = serializeProcess(process);
 ```
+
+`serializeProcess` writes a simplified EDN form that keeps only the names: it drops `:privileged?`, action configs, `:at` and everything else a real process carries. Do not push its output to a marketplace. To deploy a process, push the file's own text.
 
 ### Make API Calls
 

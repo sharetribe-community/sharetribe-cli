@@ -15,9 +15,11 @@ export interface ProcessAction {
 
 export interface ProcessTransition {
   name: string;
-  from: string;
+  /** Absent on the transitions that start a process */
+  from?: string;
   to: string;
-  actor: string;
+  /** Absent on time-based transitions, which carry an `:at` instead of an actor */
+  actor?: string;
   privileged?: boolean;
   actions?: ProcessAction[];
 }
