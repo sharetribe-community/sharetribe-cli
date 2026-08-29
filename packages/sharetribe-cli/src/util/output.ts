@@ -77,7 +77,11 @@ export function printSuccess(message: string): void {
 
 /**
  * Prints a warning message
+ *
+ * Goes to stderr, as flex-cli's ppd-err does, so that a warning never lands in
+ * output a script is capturing: deploy-test.sh compares a push's whole stdout
+ * against "No changes".
  */
 export function printWarning(message: string): void {
-  console.log(chalk.yellow(`Warning: ${message}`));
+  console.error(chalk.yellow(`Warning: ${message}`));
 }

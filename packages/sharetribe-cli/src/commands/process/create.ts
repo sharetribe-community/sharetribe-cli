@@ -4,8 +4,13 @@
 
 import { createProcess as sdkCreateProcess } from 'sharetribe-flex-build-sdk';
 import { printError, printSuccess } from '../../util/output.js';
+import {
+  ensureProcessDir,
+  ensureTemplates,
+  processFilePath,
+  readTemplates,
+} from '../../util/process-files.js';
 import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 
 /**
  * Creates a new transaction process
@@ -16,14 +21,21 @@ export async function createProcess(
   path: string
 ): Promise<void> {
   try {
-    const processFilePath = join(path, 'process.edn');
-    const processContent = readFileSync(processFilePath, 'utf-8');
+    ensureProcessDir(path);
 
-    const result = await sdkCreateProcess(undefined, marketplace, processName, processContent);
+    const definition = readFileSync(processFilePath(path), 'utf-8');
+    const templates = readTemplates(path);
+    ensureTemplates(path, templates);
 
-    printSuccess(
-      `Process ${result.name} successfully created with version ${result.version}.`
+    const result = await sdkCreateProcess(
+      undefined,
+      marketplace,
+      processName,
+      definition,
+      templates
     );
+
+    printSuccess(`Process ${result.name} successfully created.`);
   } catch (error) {
     if (error && typeof error === 'object' && 'message' in error) {
       printError(error.message as string);
