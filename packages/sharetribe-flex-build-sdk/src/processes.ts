@@ -4,7 +4,7 @@
  * Programmatic API for managing Sharetribe transaction processes
  */
 
-import { apiGet, apiPost, apiPostMultipart, apiPostTransit, type MultipartField } from './api/client.js';
+import { apiGet, apiPostMultipart, apiPostTransit, type MultipartField } from './api/client.js';
 import { keyword, keywordMap } from './api/transit.js';
 
 export interface ProcessListItem {
@@ -30,6 +30,12 @@ export interface ProcessDetails {
   }>;
 }
 
+export interface ProcessTemplate {
+  name: string;
+  html: string;
+  subject: string;
+}
+
 export interface CreateProcessResult {
   name: string;
   version: number;
@@ -43,6 +49,29 @@ export interface PushProcessResult {
 export interface AliasResult {
   alias: string;
   version: number;
+}
+
+/**
+ * Builds the multipart payload that /processes/create and
+ * /processes/create-version both take: the process name, the definition text,
+ * and one html/subject field pair per template.
+ */
+function toMultipartFields(
+  processName: string,
+  definition: string,
+  templates?: ProcessTemplate[]
+): MultipartField[] {
+  const fields: MultipartField[] = [
+    { name: 'name', value: processName },
+    { name: 'definition', value: definition },
+  ];
+
+  for (const template of templates ?? []) {
+    fields.push({ name: `template-html-${template.name}`, value: template.html });
+    fields.push({ name: `template-subject-${template.name}`, value: template.subject });
+  }
+
+  return fields;
 }
 
 /**
@@ -147,23 +176,32 @@ export async function getProcess(
 /**
  * Creates a new transaction process
  *
+ * Posts the same multipart payload as pushProcess: the process.edn text plus
+ * every email template. The API stores the templates with the version it
+ * creates, so a create that omits them lands the first version with no
+ * templates at all.
+ *
  * @param apiKey - Sharetribe API key
  * @param marketplace - Marketplace ID
  * @param processName - Name for the new process
- * @param definition - Process definition (EDN format)
+ * @param definition - Process definition, the process.edn file's own text
+ * @param templates - Email templates to store with the created version
  * @returns Created process details
  */
 export async function createProcess(
   apiKey: string | undefined,
   marketplace: string,
   processName: string,
-  definition: string
+  definition: string,
+  templates?: ProcessTemplate[]
 ): Promise<CreateProcessResult> {
-  const response = await apiPost<{ data: { 'process/name': string; 'process/version': number } }>(
+  const response = await apiPostMultipart<{
+    data: { 'process/name': string; 'process/version': number };
+  }>(
     apiKey,
     '/processes/create',
     { marketplace },
-    { name: processName, definition }
+    toMultipartFields(processName, definition, templates)
   );
 
   return {
@@ -187,25 +225,13 @@ export async function pushProcess(
   marketplace: string,
   processName: string,
   definition: string,
-  templates?: Array<{ name: string; html: string; subject: string }>
+  templates?: ProcessTemplate[]
 ): Promise<PushProcessResult> {
-  const fields: MultipartField[] = [
-    { name: 'name', value: processName },
-    { name: 'definition', value: definition },
-  ];
-
-  if (templates) {
-    for (const template of templates) {
-      fields.push({ name: `template-html-${template.name}`, value: template.html });
-      fields.push({ name: `template-subject-${template.name}`, value: template.subject });
-    }
-  }
-
   const response = await apiPostMultipart<{ data: any; meta?: { result?: string } }>(
     apiKey,
     '/processes/create-version',
     { marketplace },
-    fields
+    toMultipartFields(processName, definition, templates)
   );
 
   if (response.meta?.result === 'no-changes') {
