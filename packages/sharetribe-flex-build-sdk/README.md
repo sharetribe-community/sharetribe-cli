@@ -79,11 +79,11 @@ const details = await getProcess(apiKey, marketplace, 'my-process', { version: '
 // Returns: { definition: '...', version: 2, emailTemplates: [...] }
 
 // Create process (flex-cli: process create)
-const result = await createProcess(apiKey, marketplace, 'new-process', ednString);
+const result = await createProcess(apiKey, marketplace, 'new-process', ednText, templates);
 // Returns: { name: 'new-process', version: 1 }
 
 // Push update (flex-cli: process push)
-const pushResult = await pushProcess(apiKey, marketplace, 'my-process', ednString, templates);
+const pushResult = await pushProcess(apiKey, marketplace, 'my-process', ednText, templates);
 // Returns: { version: 2 } or { noChanges: true }
 
 // Manage aliases (flex-cli: process create-alias, update-alias)
@@ -91,6 +91,53 @@ await createAlias(apiKey, marketplace, 'my-process', 1, 'release');
 await updateAlias(apiKey, marketplace, 'my-process', 2, 'release');
 await deleteAlias(apiKey, marketplace, 'my-process', 'release');
 ```
+
+`createProcess` and `pushProcess` both take `ednText`, the process.edn file's own text, and both
+send it as multipart along with the email templates. Read the text with `fs.readFileSync`; do not
+build it with `serializeProcess`, which is lossy (see below).
+
+### Deploying a Process
+
+The SDK is one function per Build API endpoint and deliberately ships no `deployProcess`
+orchestrator. Compose the primitives instead. `listProcessVersions` is what decides create versus
+push, and the same response tells you whether the alias already exists, because aliases sit on the
+versions they point at:
+
+```typescript
+import {
+  listProcessVersions,
+  createProcess,
+  pushProcess,
+  createAlias,
+  updateAlias,
+} from 'sharetribe-flex-build-sdk';
+
+let versions;
+try {
+  versions = await listProcessVersions(apiKey, marketplace, processName);
+} catch (error) {
+  // The Build API answers an unknown process with this code, and only this code.
+  if (error.code !== 'tx-process-not-found') throw error;
+  versions = null;
+}
+
+if (versions === null) {
+  const created = await createProcess(apiKey, marketplace, processName, ednText, templates);
+  await createAlias(apiKey, marketplace, processName, created.version, alias);
+} else {
+  const aliasExists = versions.some((v) => v.aliases?.includes(alias));
+  const pushed = await pushProcess(apiKey, marketplace, processName, ednText, templates);
+  // A push with nothing to change returns no version; the alias then targets the latest one.
+  const version = pushed.version ?? Math.max(...versions.map((v) => v.version));
+  const pointAlias = aliasExists ? updateAlias : createAlias;
+  await pointAlias(apiKey, marketplace, processName, version, alias);
+}
+```
+
+Do not branch on a caught create or alias failure instead. The API's codes are
+`tx-process-already-exists` for a duplicate process and `alias-not-found` for a missing alias, and
+`getProcess` cannot tell "no such process" from "no such alias". The `listProcessVersions` read is
+the only one that answers both questions in a single call, and you keep its version list.
 
 ### Parse EDN Process Files
 

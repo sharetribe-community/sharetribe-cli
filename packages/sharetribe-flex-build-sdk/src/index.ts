@@ -17,17 +17,11 @@ export {
   type ProcessListItem,
   type ProcessVersion,
   type ProcessDetails,
+  type ProcessTemplate,
   type CreateProcessResult,
   type PushProcessResult,
   type AliasResult,
 } from './processes.js';
-
-// Export process deployment functions
-export {
-  deployProcess,
-  type DeployProcessOptions,
-  type DeployProcessResult,
-} from './deploy.js';
 
 // Export search schema management functions
 export {
