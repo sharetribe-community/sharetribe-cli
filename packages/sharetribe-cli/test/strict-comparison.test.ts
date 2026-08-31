@@ -23,6 +23,9 @@ function runCli(
     return execSync(`${cliName} ${command}`, {
       encoding: 'utf-8',
       stdio: ['pipe', 'pipe', 'pipe'],
+      // A CLI that never exits would block the whole run: execSync is
+      // synchronous, so vitest's own testTimeout cannot interrupt it.
+      timeout: 60_000,
       env,
     });
   } catch (error) {
@@ -67,16 +70,20 @@ function normalizeOutput(output: string, type: 'table' | 'json' | 'text'): strin
 
 describe('Strict Byte-by-Byte Comparison Tests', () => {
   describe('version command', () => {
-    it('matches flex-cli version output exactly', () => {
+    it('tracks flex-cli version numbering', () => {
       const flexOutput = runCli('version', 'flex').trim();
       const shareOutput = runCli('version', 'sharetribe').trim();
-      
-      // Extract major.minor from both versions (ignore patch version)
-      const flexVersionMatch = flexOutput.match(/^(\d+\.\d+)/);
-      const shareVersionMatch = shareOutput.match(/^(\d+\.\d+)/);
-      
-      if (flexVersionMatch && shareVersionMatch) {
-        expect(shareVersionMatch[1]).toBe(flexVersionMatch[1]);
+
+      // flex-cli prints its hardcoded cli-info/version constant rather than its
+      // npm version, and upstream leaves the constant behind: flex-cli 1.17.0
+      // (b65f44e81) still prints 1.16.0. We track the npm numbering, so our
+      // printed version may run ahead of theirs, but must never fall behind.
+      const flexVersion = flexOutput.match(/^(\d+)\.(\d+)/);
+      const shareVersion = shareOutput.match(/^(\d+)\.(\d+)/);
+
+      if (flexVersion && shareVersion) {
+        expect(Number(shareVersion[1])).toBe(Number(flexVersion[1]));
+        expect(Number(shareVersion[2])).toBeGreaterThanOrEqual(Number(flexVersion[2]));
       } else {
         // Fallback to exact match if version pattern not found
         expect(shareOutput).toBe(flexOutput);

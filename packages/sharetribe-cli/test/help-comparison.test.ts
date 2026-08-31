@@ -16,6 +16,9 @@ function runCli(command: string, cli: 'flex' | 'sharetribe'): string {
     return execSync(`${cliName} ${command}`, {
       encoding: 'utf-8',
       stdio: ['pipe', 'pipe', 'pipe'],
+      // A CLI that never exits would block the whole run: execSync is
+      // synchronous, so vitest's own testTimeout cannot interrupt it.
+      timeout: 60_000,
     });
   } catch (error) {
     if (error instanceof Error && 'stdout' in error && 'stderr' in error) {
