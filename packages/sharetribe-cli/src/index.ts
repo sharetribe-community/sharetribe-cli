@@ -146,10 +146,20 @@ program
     targetCmd.outputHelp();
   });
 
+const commandArgs = routedArgv.slice(2);
+
+// flex-cli hides the assets subcommands and puts no handler on the group itself,
+// so naming the group without one of them is a miss rather than a help page.
+const isAssetsGroupWithoutSubcommand =
+  commandArgs[0] === 'assets' && !['pull', 'push', 'help'].includes(commandArgs[1] ?? '');
+
 // If no command specified, show help and exit with status 0
-if (!routedArgv.slice(2).length) {
+if (!commandArgs.length) {
   program.outputHelp();
   // Don't call process.exit() - let Commander handle it naturally with exitOverride
+} else if (isAssetsGroupWithoutSubcommand) {
+  console.error('Command not found: assets');
+  process.exitCode = 1;
 } else {
   // Parse command line arguments with routed argv
   program.parse(routedArgv);

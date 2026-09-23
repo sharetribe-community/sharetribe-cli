@@ -68,6 +68,41 @@ export function printError(message: string): void {
   console.error(chalk.red(`Error: ${message}`));
 }
 
+/** Single right-pointing angle quotation mark, flex-cli's error-page bullet */
+const ERROR_ARROW = '›';
+
+/**
+ * Prints flex-cli's error page to stderr
+ *
+ * Every line is prefixed with a bold red arrow, sections are separated by an
+ * arrow-only line, and the page ends with two blank lines. Reproduced from
+ * flex-cli's error-page (api/client.cljs) so a failed API call writes the same
+ * bytes we do.
+ *
+ * @param sections - Lines of the page, each without its trailing newline
+ */
+export function printErrorPage(sections: string[]): void {
+  const arrow = chalk.bold.red(ERROR_ARROW);
+  const page = sections.map(section => ` ${arrow} ${section}\n`).join(` ${arrow} \n`);
+  process.stderr.write(`${page}\n\n`);
+}
+
+/**
+ * Prints flex-cli's argument parse error, naming every missing option at once
+ *
+ * Commander stops at the first missing required option, while flex-cli lists
+ * them all in declaration order, so callers collect the missing options by hand
+ * and pass them here.
+ *
+ * @param missing - Option names in declaration order, e.g. ['--path', '--marketplace']
+ */
+export function printMissingOptions(missing: string[]): void {
+  console.error('Could not parse arguments:');
+  for (const option of missing) {
+    console.error(`${option} is required`);
+  }
+}
+
 /**
  * Prints a success message
  */

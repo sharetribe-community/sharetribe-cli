@@ -8,8 +8,10 @@ import {
   stageAsset as sdkStageAsset,
   getApiBaseUrl,
   readAuth,
+  type ApiError,
 } from 'sharetribe-flex-build-sdk';
-import { printError } from '../../util/output.js';
+import { printError, printMissingOptions } from '../../util/output.js';
+import { parseApiErrorBody, printApiError, type ApiErrorDetails } from '../../util/api-error.js';
 import {
   readFileSync,
   writeFileSync,
@@ -235,17 +237,34 @@ function getAssetsPullUrl(marketplace: string, version?: string): URL {
   return url;
 }
 
-function getErrorMessage(body: string, statusCode: number): string {
-  try {
-    const parsed = JSON.parse(body) as { errors?: Array<{ message?: string }> };
-    const message = parsed.errors?.[0]?.message;
-    if (message) {
-      return message;
-    }
-  } catch {
-    // Ignore JSON parse errors
+/**
+ * A non-2xx API response, carrying what the error page needs to render it
+ *
+ * flex-cli cannot report these at all on pull: it asks for application/zip, gets
+ * an edn error body back, and dies on "No matching clause: application/edn"
+ * before hanging on its download progress line. We print the error page instead.
+ */
+class AssetsApiError extends Error {
+  constructor(readonly details: ApiErrorDetails) {
+    super(`API call failed. Status: ${details.status}`);
+    this.name = 'AssetsApiError';
   }
-  return body || `HTTP ${statusCode}`;
+}
+
+/**
+ * Tells an API error thrown by the SDK from any other failure
+ */
+function isApiError(error: unknown): error is ApiError {
+  return (
+    typeof error === 'object' && error !== null && 'status' in error && 'code' in error
+  );
+}
+
+/**
+ * Reads the API key for the error page, which prints its last four characters
+ */
+function apiKeyForErrorPage(): string {
+  return readAuth()?.apiKey ?? '';
 }
 
 async function getAssetsZipStream(
@@ -276,7 +295,7 @@ async function getAssetsZipStream(
           res.on('data', (chunk: Buffer) => chunks.push(chunk));
           res.on('end', () => {
             const body = Buffer.concat(chunks).toString('utf-8');
-            reject(new Error(getErrorMessage(body, statusCode)));
+            reject(new AssetsApiError(parseApiErrorBody(body, statusCode)));
           });
           return;
         }
@@ -436,6 +455,10 @@ async function pullAssets(
       }
     }
   } catch (error) {
+    if (error instanceof AssetsApiError) {
+      printApiError(error.details, marketplace, apiKeyForErrorPage());
+      process.exitCode = 1; return;
+    }
     if (error && typeof error === 'object' && 'message' in error) {
       printError(error.message as string);
     } else {
@@ -516,17 +539,18 @@ async function pushAssets(
       return;
     }
 
-    // Log changed assets
+    // Log changed assets. flex-cli logs progress through io-util/log, which
+    // writes to stderr, and keeps stdout for the command's result line.
     if (changedAssets.length > 0) {
       const paths = changedAssets.map(a => a.path).join(', ');
-      console.log(chalk.green(`Uploading changed assets: ${paths}`));
+      console.error(chalk.green(`Uploading changed assets: ${paths}`));
     }
 
     // Stage non-JSON assets
     const stagedByPath = new Map<string, string>();
     if (stageableAssets.length > 0) {
       const paths = stageableAssets.map(a => a.path).join(', ');
-      console.log(chalk.green(`Staging assets: ${paths}`));
+      console.error(chalk.green(`Staging assets: ${paths}`));
 
       for (const asset of stageableAssets) {
         try {
@@ -578,6 +602,18 @@ async function pushAssets(
 
     console.log(`New version ${result.version} successfully created.`);
   } catch (error) {
+    if (isApiError(error)) {
+      printApiError(
+        { status: error.status, title: error.title, originalText: error.body },
+        marketplace,
+        apiKeyForErrorPage()
+      );
+      // flex-cli reads no new version out of the failed response, so it falls
+      // into its no-op branch and exits 0. Matched here because byte-for-byte
+      // compatibility is the goal, even though it hides a failed push.
+      console.log('Assets are up to date.');
+      return;
+    }
     if (error && typeof error === 'object' && 'message' in error) {
       printError(error.message as string);
     } else {
@@ -585,6 +621,18 @@ async function pushAssets(
     }
     process.exitCode = 1; return;
   }
+}
+
+/**
+ * Names the required options a pull or push invocation is missing
+ *
+ * Declaration order, which is the order flex-cli reports them in.
+ */
+function missingAssetsOptions(path?: string, marketplace?: string): string[] {
+  const missing: string[] = [];
+  if (!path) missing.push('--path');
+  if (!marketplace) missing.push('--marketplace');
+  return missing;
 }
 
 /**
@@ -597,14 +645,15 @@ export function registerAssetsCommands(program: Command): void {
   assetsCmd
     .command('pull')
     .description('pull assets from remote')
-    .requiredOption('--path <PATH>', 'path to directory where assets will be stored')
+    .option('--path <PATH>', 'path to directory where assets will be stored')
     .option('--version <VERSION>', 'version of assets to pull')
     .option('--prune', 'delete local files no longer present as remote assets')
     .option('-m, --marketplace <MARKETPLACE_ID>', 'marketplace identifier')
     .action(async (opts) => {
       const marketplace = opts.marketplace || program.opts().marketplace;
-      if (!marketplace) {
-        console.error('Error: --marketplace is required');
+      const missing = missingAssetsOptions(opts.path, marketplace);
+      if (missing.length > 0) {
+        printMissingOptions(missing);
         process.exitCode = 1; return;
       }
       await pullAssets(marketplace, opts.path, opts.version, opts.prune);
@@ -614,13 +663,14 @@ export function registerAssetsCommands(program: Command): void {
   assetsCmd
     .command('push')
     .description('push assets to remote')
-    .requiredOption('--path <PATH>', 'path to directory with assets')
+    .option('--path <PATH>', 'path to directory with assets')
     .option('--prune', 'delete remote assets no longer present locally')
     .option('-m, --marketplace <MARKETPLACE_ID>', 'marketplace identifier')
     .action(async (opts) => {
       const marketplace = opts.marketplace || program.opts().marketplace;
-      if (!marketplace) {
-        console.error('Error: --marketplace is required');
+      const missing = missingAssetsOptions(opts.path, marketplace);
+      if (missing.length > 0) {
+        printMissingOptions(missing);
         process.exitCode = 1; return;
       }
       await pushAssets(marketplace, opts.path, opts.prune);
