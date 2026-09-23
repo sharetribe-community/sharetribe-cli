@@ -101,6 +101,11 @@ export {
   type StripeApiVersion,
 } from './stripe.js';
 
+// Export the API error thrown by every request helper
+export {
+  type ApiError,
+} from './api/client.js';
+
 // Export configuration helpers
 export {
   getApiBaseUrl,

@@ -17,6 +17,10 @@ export interface ApiError {
   code: string;
   message: string;
   status: number;
+  /** errors[0].title from the response body, which flex-cli prints as the failure reason */
+  title?: string;
+  /** Raw response body, printed as the reason when the body carried no title */
+  body?: string;
 }
 
 /**
@@ -53,7 +57,7 @@ function handleResponse<T>(response: HttpResponse): T {
   }
 
   // Parse error response
-  let errorData: { errors?: Array<{ code: string; message?: string }> } = {};
+  let errorData: { errors?: Array<{ code: string; message?: string; title?: string }> } = {};
   try {
     errorData = JSON.parse(response.body);
   } catch {
@@ -65,6 +69,8 @@ function handleResponse<T>(response: HttpResponse): T {
     code: firstError?.code || 'UNKNOWN_ERROR',
     message: firstError?.message || `HTTP ${response.statusCode}`,
     status: response.statusCode,
+    title: firstError?.title,
+    body: response.body,
   };
 
   throw error;
