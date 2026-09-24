@@ -5,12 +5,23 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { execSync } from 'child_process';
+import { spawnSync } from 'child_process';
 
 const MARKETPLACE = 'expertapplication-dev';
 
 /**
  * Executes a CLI command and returns output (stdout + stderr combined)
+ *
+ * spawnSync with `shell: false` on purpose. `execSync` runs the command through
+ * `/bin/sh`, so its timeout signal lands on the shell and leaves the CLI itself
+ * running. flex-cli's `assets pull` spins forever against this marketplace: it
+ * fails with "No matching clause: application/edn" and then loops printing
+ * "Downloaded 0.00MB", so every run that hit the bound leaked a process pegging
+ * a core until someone killed it by hand. Spawning the binary directly puts the
+ * SIGKILL on the CLI, so an overrunning run leaves nothing behind.
+ *
+ * `command` is split on whitespace: no call site quotes an argument, and the
+ * paths passed in come from mkdtemp.
  */
 function runCli(
   command: string,
@@ -19,23 +30,20 @@ function runCli(
 ): string {
   const cliName = cli === 'flex' ? 'flex-cli' : 'sharetribe-community-cli';
   const env = envOverrides ? { ...process.env, ...envOverrides } : process.env;
-  try {
-    return execSync(`${cliName} ${command}`, {
-      encoding: 'utf-8',
-      stdio: ['pipe', 'pipe', 'pipe'],
-      // A CLI that never exits would block the whole run: execSync is
-      // synchronous, so vitest's own testTimeout cannot interrupt it.
-      timeout: 60_000,
-      env,
-    });
-  } catch (error) {
-    if (error instanceof Error && 'stdout' in error && 'stderr' in error) {
-      const stdout = (error as any).stdout || '';
-      const stderr = (error as any).stderr || '';
-      return stdout + stderr;
-    }
-    throw error;
+  const result = spawnSync(cliName, command.split(/\s+/).filter(Boolean), {
+    encoding: 'utf-8',
+    stdio: ['pipe', 'pipe', 'pipe'],
+    shell: false,
+    // A CLI that never exits would block the whole run: spawnSync is
+    // synchronous, so vitest's own testTimeout cannot interrupt it.
+    timeout: 60_000,
+    killSignal: 'SIGKILL',
+    env,
+  });
+  if (result.error) {
+    throw result.error;
   }
+  return result.status === 0 ? result.stdout : result.stdout + result.stderr;
 }
 
 /**
