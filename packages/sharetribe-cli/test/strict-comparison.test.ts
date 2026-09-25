@@ -83,9 +83,11 @@ describe('Strict Byte-by-Byte Comparison Tests', () => {
       const shareOutput = runCli('version', 'sharetribe').trim();
 
       // flex-cli prints its hardcoded cli-info/version constant rather than its
-      // npm version, and upstream leaves the constant behind: flex-cli 1.17.0
-      // (b65f44e81) still prints 1.16.0. We track the npm numbering, so our
-      // printed version may run ahead of theirs, but must never fall behind.
+      // npm version, and upstream leaves the constant behind: the published
+      // flex-cli 1.17.1 still prints 1.16.0, because 4480e695a moved the
+      // constant to 1.17.1 only after that release was built. We track the npm
+      // numbering, so our printed version may run ahead of theirs, but must
+      // never fall behind.
       const flexVersion = flexOutput.match(/^(\d+)\.(\d+)/);
       const shareVersion = shareOutput.match(/^(\d+)\.(\d+)/);
 
