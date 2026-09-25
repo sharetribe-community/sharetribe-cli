@@ -6,16 +6,21 @@
 
 import chalk from 'chalk';
 
+/** Column width per header, as flex-cli's print-table returns for a continuation */
+export type ColumnWidths = Record<string, number>;
+
 /**
  * Prints a table with headers and rows
  *
- * Matches flex-cli table formatting exactly
+ * Matches flex-cli table formatting exactly. An empty row set still prints the
+ * header, as flex-cli's print-table does: it takes the column width from the
+ * header alone when no row is wider.
+ *
+ * @param headers - Column headers, in order
+ * @param rows - Rows keyed by header
+ * @returns The column widths, to pass to printTableContinuation
  */
-export function printTable(headers: string[], rows: Array<Record<string, string>>): void {
-  if (rows.length === 0) {
-    return;
-  }
-
+export function printTable(headers: string[], rows: Array<Record<string, string>>): ColumnWidths {
   // Calculate column widths
   // flex-cli uses keywords (e.g., :version) which when stringified include the ':' prefix
   // To match flex-cli widths, we add 1 to header length to simulate the ':' prefix
@@ -59,6 +64,36 @@ export function printTable(headers: string[], rows: Array<Record<string, string>
 
   // Print empty line after table (like flex-cli)
   console.log('');
+
+  return widths;
+}
+
+/**
+ * Prints more rows under a table printed earlier
+ *
+ * Reproduces flex-cli's print-table-continuation: no header, no surrounding
+ * blank lines, and the column widths of the first batch, so a live tail keeps
+ * its columns aligned without repeating the header. An empty row set prints
+ * nothing.
+ *
+ * @param headers - Column headers, in order, to order the columns
+ * @param widths - Column widths returned by the printTable call that printed the header
+ * @param rows - Rows keyed by header
+ */
+export function printTableContinuation(
+  headers: string[],
+  widths: ColumnWidths,
+  rows: Array<Record<string, string>>
+): void {
+  for (const row of rows) {
+    const rowParts = headers.map((h, i) => {
+      const value = row[h] || '';
+      const width = widths[h] || 0;
+      const padded = value.padEnd(width + 1);
+      return i === headers.length - 1 ? padded : padded + ' ';
+    });
+    console.log(rowParts.join(''));
+  }
 }
 
 /**

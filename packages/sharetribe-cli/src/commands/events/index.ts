@@ -3,12 +3,22 @@
  */
 
 import { Command } from 'commander';
-import { printTable, printError } from '../../util/output.js';
+import { printTable, printTableContinuation, printError, type ColumnWidths } from '../../util/output.js';
 import {
   queryEvents as sdkQueryEvents,
   pollEvents as sdkPollEvents,
   type EventData as SdkEventData
 } from 'sharetribe-flex-build-sdk';
+
+/** Event table columns, in flex-cli's order */
+const EVENT_HEADERS = [
+  'Seq ID',
+  'Resource ID',
+  'Event type',
+  'Created at local time',
+  'Source',
+  'Actor',
+];
 
 interface EventsQueryOptions {
   resourceId?: string;
@@ -90,12 +100,9 @@ async function queryEvents(
       }
     );
 
-    if (events.length === 0) {
-      console.log('No events found.');
-      return;
-    }
-
-    // Output format
+    // Output format. No events is not a special case: flex-cli prints the
+    // header-only table, and nothing at all under --json or --json-pretty, so
+    // that a parser reading the pipe never sees a prose line.
     if (opts.json) {
       for (const event of events) {
         // Exclude auditEmails to match flex-cli JSON format
@@ -110,7 +117,7 @@ async function queryEvents(
       }
     } else {
       printTable(
-        ['Seq ID', 'Resource ID', 'Event type', 'Created at local time', 'Source', 'Actor'],
+        EVENT_HEADERS,
         events.map((event) => {
           const actor = event.auditEmails?.userEmail || event.auditEmails?.adminEmail || '';
           const source = event.source?.replace('source/', '') || '';
@@ -149,6 +156,8 @@ async function tailEvents(
     console.log('Tailing events... Press Ctrl+C to stop');
     console.log('');
 
+    let tailWidths: ColumnWidths | undefined;
+
     const stopPolling = sdkPollEvents(
       undefined, // Use auth from file
       marketplace,
@@ -173,22 +182,28 @@ async function tailEvents(
             console.log(JSON.stringify(eventWithoutEmails, null, 2));
           }
         } else {
-          printTable(
-            ['Seq ID', 'Resource ID', 'Event type', 'Created at local time', 'Source', 'Actor'],
-            events.map((event) => {
-              const actor = event.auditEmails?.userEmail || event.auditEmails?.adminEmail || '';
-              const source = event.source?.replace('source/', '') || '';
+          const rows = events.map((event) => {
+            const actor = event.auditEmails?.userEmail || event.auditEmails?.adminEmail || '';
+            const source = event.source?.replace('source/', '') || '';
 
-              return {
-                'Seq ID': event.sequenceId.toString(),
-                'Resource ID': event.resourceId,
-                'Event type': event.eventType,
-                'Created at local time': formatTimestamp(event.createdAt),
-                'Source': source,
-                'Actor': actor,
-              };
-            })
-          );
+            return {
+              'Seq ID': event.sequenceId.toString(),
+              'Resource ID': event.resourceId,
+              'Event type': event.eventType,
+              'Created at local time': formatTimestamp(event.createdAt),
+              'Source': source,
+              'Actor': actor,
+            };
+          });
+
+          // flex-cli's polling loop prints the header once and every later
+          // batch as a continuation, so the columns stay aligned and the
+          // header does not repeat on each poll.
+          if (tailWidths) {
+            printTableContinuation(EVENT_HEADERS, tailWidths, rows);
+          } else {
+            tailWidths = printTable(EVENT_HEADERS, rows);
+          }
         }
       },
       5000 // 5 second poll interval
