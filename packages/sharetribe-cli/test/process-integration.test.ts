@@ -15,8 +15,12 @@ import { spawnSync } from 'child_process';
 import { mkdtempSync, readFileSync, writeFileSync, rmSync, existsSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
+import { writableMarketplace } from './marketplaces.js';
 
-const MARKETPLACE = 'expertapplication-dev';
+// The whole suite pushes process versions and creates, updates and deletes an
+// alias, so it goes through writableMarketplace rather than reading the default
+// directly: it must never run against a production marketplace.
+const MARKETPLACE = writableMarketplace();
 const PROCESS_NAME = 'default-booking';
 const TEST_ALIAS = 'test-integration-alias';
 
@@ -53,7 +57,7 @@ function runCli(command: string, cli: 'flex' | 'sharetribe'): string {
 
 // NOTE: This integration test is skipped by default because it requires:
 // 1. Valid authentication (run `sharetribe-community-cli login` first)
-// 2. Access to expertapplication-dev marketplace
+// 2. Access to the marketplace named in test-marketplaces.json
 // 3. The push API endpoint to be working correctly
 //
 // To run this test, use: npm test -- process-integration.test.ts

@@ -12,6 +12,9 @@ npm-debug.log*
 .env
 .env.local
 
+# Marketplace idents the comparison tests run against. This repo is public.
+test-marketplaces.json
+
 # IDE
 .vscode/
 .idea/

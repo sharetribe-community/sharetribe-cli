@@ -6,8 +6,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { spawnSync } from 'child_process';
-
-const MARKETPLACE = 'expertapplication-dev';
+import { MARKETPLACE, writableMarketplace } from './marketplaces.js';
 
 /**
  * Executes a CLI command and returns output (stdout + stderr combined)
@@ -549,9 +548,11 @@ describe('Strict Byte-by-Byte Comparison Tests', () => {
 
   describe('workflow tests', () => {
     it('search set/unset workflow matches flex-cli', async () => {
+      // This test writes: search unset then search set against the marketplace.
+      const marketplace = writableMarketplace();
       // 1. List existing schemas to find one we can test with
-      const listFlexOutput = runCli(`search --marketplace ${MARKETPLACE}`, 'flex');
-      const listShareOutput = runCli(`search --marketplace ${MARKETPLACE}`, 'sharetribe');
+      const listFlexOutput = runCli(`search --marketplace ${marketplace}`, 'flex');
+      const listShareOutput = runCli(`search --marketplace ${marketplace}`, 'sharetribe');
 
       // Headers should match exactly
       const flexLines = listFlexOutput.split('\n');
@@ -584,7 +585,7 @@ describe('Strict Byte-by-Byte Comparison Tests', () => {
       const testDoc = parts[5] || ''; // Doc column (optional)
 
       // Build the set command
-      let setCommand = `search set --marketplace ${MARKETPLACE} --key ${testKey} --scope ${testScope} --type ${testType} --schema-for ${testSchemaFor}`;
+      let setCommand = `search set --marketplace ${marketplace} --key ${testKey} --scope ${testScope} --type ${testType} --schema-for ${testSchemaFor}`;
       if (testDoc) {
         setCommand += ` --doc "${testDoc}"`;
       }
@@ -594,19 +595,19 @@ describe('Strict Byte-by-Byte Comparison Tests', () => {
 
       // 2. Run all 3 flex-cli commands first
       const unsetFlexOutput = runCli(
-        `search unset --marketplace ${MARKETPLACE} --key ${testKey} --scope ${testScope} --schema-for ${testSchemaFor}`,
+        `search unset --marketplace ${marketplace} --key ${testKey} --scope ${testScope} --schema-for ${testSchemaFor}`,
         'flex'
       );
       const setFlexOutput = runCli(setCommand, 'flex');
-      const verifyFlexOutput = runCli(`search --marketplace ${MARKETPLACE}`, 'flex');
+      const verifyFlexOutput = runCli(`search --marketplace ${marketplace}`, 'flex');
 
       // 3. Run all 3 sharetribe-community-cli commands
       const unsetShareOutput = runCli(
-        `search unset --marketplace ${MARKETPLACE} --key ${testKey} --scope ${testScope} --schema-for ${testSchemaFor}`,
+        `search unset --marketplace ${marketplace} --key ${testKey} --scope ${testScope} --schema-for ${testSchemaFor}`,
         'sharetribe'
       );
       const setShareOutput = runCli(setCommand, 'sharetribe');
-      const verifyShareOutput = runCli(`search --marketplace ${MARKETPLACE}`, 'sharetribe');
+      const verifyShareOutput = runCli(`search --marketplace ${marketplace}`, 'sharetribe');
 
       // 4. Do all assertions together
       expect(unsetShareOutput).toBe(unsetFlexOutput);
@@ -681,6 +682,8 @@ describe('Strict Byte-by-Byte Comparison Tests', () => {
     }, 10000); // 10 second timeout
 
     it('assets pull/push workflow matches flex-cli', () => {
+      // This test writes: assets push against the marketplace.
+      const marketplace = writableMarketplace();
       const { mkdtempSync, rmSync } = require('fs');
       const { tmpdir } = require('os');
       const { join } = require('path');
@@ -692,11 +695,11 @@ describe('Strict Byte-by-Byte Comparison Tests', () => {
       try {
         // Pull assets with both CLIs (this may take time if there are many assets)
         const pullFlexOutput = runCli(
-          `assets pull --marketplace ${MARKETPLACE} --path ${flexDir}`,
+          `assets pull --marketplace ${marketplace} --path ${flexDir}`,
           'flex'
         );
         const pullShareOutput = runCli(
-          `assets pull --marketplace ${MARKETPLACE} --path ${shareDir}`,
+          `assets pull --marketplace ${marketplace} --path ${shareDir}`,
           'sharetribe'
         );
 
@@ -707,11 +710,11 @@ describe('Strict Byte-by-Byte Comparison Tests', () => {
 
         // Verify push works (should show no changes since we just pulled)
         const pushFlexOutput = runCli(
-          `assets push --marketplace ${MARKETPLACE} --path ${flexDir}`,
+          `assets push --marketplace ${marketplace} --path ${flexDir}`,
           'flex'
         );
         const pushShareOutput = runCli(
-          `assets push --marketplace ${MARKETPLACE} --path ${shareDir}`,
+          `assets push --marketplace ${marketplace} --path ${shareDir}`,
           'sharetribe'
         );
 
@@ -730,16 +733,18 @@ describe('Strict Byte-by-Byte Comparison Tests', () => {
     }, 30000); // 30 second timeout for assets operations
 
     it('listing-approval toggle workflow matches flex-cli', () => {
+      // This test writes: it toggles listing approval on the marketplace.
+      const marketplace = writableMarketplace();
       // Simple toggle test: enable → disable → enable to restore
       // Both CLIs should produce similar output
 
       // Enable listing approval
       const enableFlexOutput = runCli(
-        `listing-approval enable --marketplace ${MARKETPLACE}`,
+        `listing-approval enable --marketplace ${marketplace}`,
         'flex'
       );
       const enableShareOutput = runCli(
-        `listing-approval enable --marketplace ${MARKETPLACE}`,
+        `listing-approval enable --marketplace ${marketplace}`,
         'sharetribe'
       );
 
@@ -749,11 +754,11 @@ describe('Strict Byte-by-Byte Comparison Tests', () => {
 
       // Disable listing approval
       const disableFlexOutput = runCli(
-        `listing-approval disable --marketplace ${MARKETPLACE}`,
+        `listing-approval disable --marketplace ${marketplace}`,
         'flex'
       );
       const disableShareOutput = runCli(
-        `listing-approval disable --marketplace ${MARKETPLACE}`,
+        `listing-approval disable --marketplace ${marketplace}`,
         'sharetribe'
       );
 
@@ -762,11 +767,11 @@ describe('Strict Byte-by-Byte Comparison Tests', () => {
 
       // Re-enable to restore to known state
       const restoreFlexOutput = runCli(
-        `listing-approval enable --marketplace ${MARKETPLACE}`,
+        `listing-approval enable --marketplace ${marketplace}`,
         'flex'
       );
       const restoreShareOutput = runCli(
-        `listing-approval enable --marketplace ${MARKETPLACE}`,
+        `listing-approval enable --marketplace ${marketplace}`,
         'sharetribe'
       );
 
