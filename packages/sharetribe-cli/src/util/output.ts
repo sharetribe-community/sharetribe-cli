@@ -10,6 +10,22 @@ import chalk from 'chalk';
 export type ColumnWidths = Record<string, number>;
 
 /**
+ * Derives the columns from the first row, as flex-cli's print-table does when
+ * called without an explicit column list
+ *
+ * flex-cli has two arities and they differ on an empty result: given columns it
+ * prints the header, and without them it derives them from `(first rows)`, which
+ * is nil, so it prints a table of no columns and therefore no header. Callers
+ * that match the ks-less arity go through here so the difference stays visible
+ * where it matters.
+ *
+ * @param rows - Rows keyed by header; an empty set yields no columns
+ */
+export function columnsFromRows(rows: Array<Record<string, string>>): string[] {
+  return Object.keys(rows[0] ?? {});
+}
+
+/**
  * Prints a table with headers and rows
  *
  * Matches flex-cli table formatting exactly. An empty row set still prints the
@@ -42,13 +58,15 @@ export function printTable(headers: string[], rows: Array<Record<string, string>
   // Print header with bold formatting
   // flex-cli format: each column padded to (max_width + 1), with single space separator between columns
   // Last column: padding but no separator (interpose doesn't add separator after last element)
+  // flex-cli styles each title on its own and pads outside the escapes, so the
+  // padding between columns carries no colour. Styling the whole row instead
+  // would print the same characters but different bytes.
   const headerParts = headers.map((h, i) => {
     const width = widths[h] || 0;
-    const padded = h.padEnd(width + 1);
+    const padded = chalk.bold.black(h) + ' '.repeat(Math.max(0, width + 1 - h.length));
     return i === headers.length - 1 ? padded : padded + ' ';
   });
-  const headerRow = headerParts.join('');
-  console.log(chalk.bold.black(headerRow));
+  console.log(headerParts.join(''));
 
   // Print rows with same formatting
   for (const row of rows) {

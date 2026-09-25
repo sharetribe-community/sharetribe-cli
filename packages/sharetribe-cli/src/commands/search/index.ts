@@ -108,11 +108,8 @@ async function listSearchSchemas(marketplace: string): Promise<void> {
   try {
     const schemas = await sdkListSearchSchemas(undefined, marketplace);
 
-    if (schemas.length === 0) {
-      console.log('No search schemas found.');
-      return;
-    }
-
+    // No schemas is not a special case: flex-cli passes its column list to
+    // print-table, so an empty result still prints the header.
     // Map and sort the data (by schema-for, scope, key)
     const rows = schemas
       .map((s) => ({
@@ -137,46 +134,12 @@ async function listSearchSchemas(marketplace: string): Promise<void> {
     // Print table using flex-cli compatible formatting
     const headers = ['Schema for', 'Scope', 'Key', 'Type', 'Default value', 'Doc'];
 
-    // Calculate column widths
-    // flex-cli uses keywords (e.g., :version) which when stringified include the ':' prefix
-    // To match flex-cli widths, we add 1 to header length to simulate the ':' prefix
-    const widths: Record<string, number> = {};
-    for (const h of headers) {
-      widths[h] = h.length + 1;
-    }
-    for (const row of rows) {
-      for (const h of headers) {
-        const value = row[h] || '';
-        widths[h] = Math.max(widths[h], value.length);
-      }
-    }
-
-    // Print empty line before table
-    console.log('');
-
-    // Print header
-    // flex-cli search format: each column padded to max_width, with 2 space separator between columns
-    // Last column: padding with trailing space
-    const headerParts = headers.map((h, i) => {
-      const width = widths[h] || 0;
-      const padded = h.padEnd(width);
-      return i === headers.length - 1 ? padded + ' ' : padded + '  ';
-    });
-    console.log(headerParts.join(''));
-
-    // Print rows
-    for (const row of rows) {
-      const rowParts = headers.map((h, i) => {
-        const value = row[h] || '';
-        const width = widths[h] || 0;
-        const padded = value.padEnd(width);
-        return i === headers.length - 1 ? padded + ' ' : padded + '  ';
-      });
-      console.log(rowParts.join(''));
-    }
-
-    // Print empty line after table
-    console.log('');
+    // One renderer for every table: search's own copy padded each column to
+    // width then used a two space separator, which is the same bytes printTable
+    // produces from width + 1 and a one space separator, but it missed the bold
+    // header. flex-cli passes its column list here, so an empty result still
+    // prints the header.
+    printTable(headers, rows);
   } catch (error) {
     if (error && typeof error === 'object' && 'message' in error) {
       printError(error.message as string);

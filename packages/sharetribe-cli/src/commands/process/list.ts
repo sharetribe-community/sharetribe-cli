@@ -6,7 +6,7 @@ import {
   listProcesses as sdkListProcesses,
   listProcessVersions as sdkListProcessVersions,
 } from 'sharetribe-flex-build-sdk';
-import { printTable, printError } from '../../util/output.js';
+import { printTable, columnsFromRows, printError } from '../../util/output.js';
 
 
 /**
@@ -35,11 +35,6 @@ export async function listProcesses(marketplace: string, processName?: string): 
     if (processName) {
       const versions = await sdkListProcessVersions(undefined, marketplace, processName);
 
-      if (versions.length === 0) {
-        console.log(`No versions found for process: ${processName}`);
-        return;
-      }
-
       const versionRows = versions.map((v) => ({
         'Created': formatProcessTimestamp(v.createdAt),
         'Version': v.version.toString(),
@@ -47,22 +42,19 @@ export async function listProcesses(marketplace: string, processName?: string): 
         'Transactions': v.transactionCount?.toString() || '0',
       }));
 
-      printTable(['Created', 'Version', 'Aliases', 'Transactions'], versionRows);
+      // flex-cli calls print-table without a column list here, so an empty
+      // version list prints a table of no columns rather than a header.
+      printTable(columnsFromRows(versionRows), versionRows);
     } else {
       // List all processes
       const processes = await sdkListProcesses(undefined, marketplace);
-
-      if (processes.length === 0) {
-        console.log('No processes found.');
-        return;
-      }
 
       const processRows = processes.map((p) => ({
         'Name': p.name,
         'Latest version': p.version?.toString() || '',
       }));
 
-      printTable(['Name', 'Latest version'], processRows);
+      printTable(columnsFromRows(processRows), processRows);
     }
   } catch (error) {
     if (error && typeof error === 'object' && 'message' in error) {
