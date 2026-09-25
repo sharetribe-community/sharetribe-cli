@@ -8,9 +8,17 @@
 
 import chalk from 'chalk';
 import edn from 'jsedn';
-import { printErrorPage } from './output.js';
+import { errorPageLine, printErrorPage } from './output.js';
 
 const BIN = 'sharetribe-community-cli';
+
+/** JSON Schema validation failures the API reported against a single asset */
+export interface AssetValidationError {
+  /** Path of the asset that failed validation */
+  path: string;
+  /** Validation messages for that asset, in response order, duplicates dropped */
+  messages: string[];
+}
 
 export interface ApiErrorDetails {
   status: number;
@@ -18,6 +26,8 @@ export interface ApiErrorDetails {
   title?: string;
   /** Raw response body, used as the reason when the body carried no title */
   originalText?: string;
+  /** errors[0].details.assets, listed under the reason on the error page */
+  assetErrors?: AssetValidationError[];
 }
 
 /**
@@ -46,6 +56,70 @@ function titleFromEdn(body: string): string | undefined {
 }
 
 /**
+ * Reads errors[0].details.assets out of a JSON error body
+ *
+ * Only asset pushes carry these details, and the Build API answers that
+ * endpoint in JSON, so the edn bodies that assets pull returns are not searched
+ * for them.
+ *
+ * Duplicate errors are dropped per asset, as flex-cli's asset-validation-errors
+ * does. It deduplicates whole error objects rather than messages, so two
+ * failures that share a message but differ elsewhere are both printed.
+ *
+ * @param body - Raw response body
+ */
+function assetErrorsFromJson(body: string): AssetValidationError[] | undefined {
+  let assets: Array<{ path?: string; errors?: Array<{ message?: string }> }> | undefined;
+  try {
+    const parsed = JSON.parse(body) as {
+      errors?: Array<{
+        details?: { assets?: Array<{ path?: string; errors?: Array<{ message?: string }> }> };
+      }>;
+    };
+    assets = parsed.errors?.[0]?.details?.assets;
+  } catch {
+    return undefined;
+  }
+
+  if (!Array.isArray(assets) || assets.length === 0) {
+    return undefined;
+  }
+
+  return assets.map(asset => {
+    const seen = new Set<string>();
+    const messages: string[] = [];
+    for (const error of asset.errors ?? []) {
+      const key = JSON.stringify(error);
+      if (seen.has(key)) {
+        continue;
+      }
+      seen.add(key);
+      messages.push(error.message ?? '');
+    }
+    return { path: asset.path ?? '', messages };
+  });
+}
+
+/**
+ * Renders the per-asset validation lines that hang under the reason
+ *
+ * Each asset gets a line naming its path in bold and one further line per
+ * message, indented two spaces deeper. Every line carries its own arrow because
+ * the whole block is one error-page section.
+ *
+ * @param assetErrors - Validation failures, one entry per asset
+ */
+function formatAssetErrors(assetErrors: AssetValidationError[]): string {
+  return assetErrors
+    .flatMap(({ path, messages }) => [
+      errorPageLine(` In ${chalk.bold(path)}:`),
+      ...messages.map(message => errorPageLine(`   ${message}`)),
+    ])
+    .map(line => `\n${line}`)
+    .join('');
+}
+
+/**
  * Parses an API error body into what the error page prints
  *
  * The Build API answers JSON on most endpoints but edn on assets pull, which
@@ -59,6 +133,7 @@ export function parseApiErrorBody(body: string, status: number): ApiErrorDetails
     status,
     title: titleFromJson(body) ?? titleFromEdn(body),
     originalText: body || undefined,
+    assetErrors: assetErrorsFromJson(body),
   };
 }
 
@@ -75,7 +150,7 @@ export function parseApiErrorBody(body: string, status: number): ApiErrorDetails
  * @param apiKey - API key the call used; only its last four characters are printed
  */
 export function printApiError(details: ApiErrorDetails, marketplace: string, apiKey: string): void {
-  const { status, title, originalText } = details;
+  const { status, title, originalText, assetErrors } = details;
 
   if (status === 500) {
     printErrorPage(['API call failed. Reason: Internal server error.']);
@@ -91,7 +166,8 @@ export function printApiError(details: ApiErrorDetails, marketplace: string, api
     return;
   }
 
+  const reason = `API call failed. Status: ${status}, reason: ${title || originalText || 'Unspecified'}`;
   printErrorPage([
-    `API call failed. Status: ${status}, reason: ${title || originalText || 'Unspecified'}`,
+    assetErrors?.length ? `${reason}${formatAssetErrors(assetErrors)}` : reason,
   ]);
 }

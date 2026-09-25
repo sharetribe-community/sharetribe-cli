@@ -72,6 +72,19 @@ export function printError(message: string): void {
 const ERROR_ARROW = '›';
 
 /**
+ * Builds one error-page line: a space, the bold red arrow, then the text
+ *
+ * The text carries its own leading spacing, as flex-cli's own error-page
+ * fragments do, so a nested line can indent further than the section it hangs
+ * under.
+ *
+ * @param text - Everything that follows the arrow, including its leading space
+ */
+export function errorPageLine(text: string): string {
+  return ` ${chalk.bold.red(ERROR_ARROW)}${text}`;
+}
+
+/**
  * Prints flex-cli's error page to stderr
  *
  * Every line is prefixed with a bold red arrow, sections are separated by an
@@ -79,11 +92,14 @@ const ERROR_ARROW = '›';
  * flex-cli's error-page (api/client.cljs) so a failed API call writes the same
  * bytes we do.
  *
- * @param sections - Lines of the page, each without its trailing newline
+ * A section may carry embedded newlines, which are written through untouched:
+ * flex-cli re-prefixes only the first line of a section, so any further line
+ * has to supply its own arrow through errorPageLine.
+ *
+ * @param sections - Sections of the page, each without its trailing newline
  */
 export function printErrorPage(sections: string[]): void {
-  const arrow = chalk.bold.red(ERROR_ARROW);
-  const page = sections.map(section => ` ${arrow} ${section}\n`).join(` ${arrow} \n`);
+  const page = sections.map(section => `${errorPageLine(` ${section}`)}\n`).join(`${errorPageLine(' ')}\n`);
   process.stderr.write(`${page}\n\n`);
 }
 

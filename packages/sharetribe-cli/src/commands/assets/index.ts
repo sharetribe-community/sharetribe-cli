@@ -604,7 +604,7 @@ async function pushAssets(
   } catch (error) {
     if (isApiError(error)) {
       printApiError(
-        { status: error.status, title: error.title, originalText: error.body },
+        parseApiErrorBody(error.body ?? '', error.status),
         marketplace,
         apiKeyForErrorPage()
       );
