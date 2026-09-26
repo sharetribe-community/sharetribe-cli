@@ -23,11 +23,16 @@ function isApiError(error: unknown): error is ApiError {
 /**
  * Executes the login command
  *
- * The key is verified before it is written, so a rejected key leaves any
- * previously stored key untouched. flex-cli prompts through an inquirer module
- * bound to stderr, so that a future command which prompts and then writes to
- * stdout can still be piped, and it sets no mask, so the key is not echoed at
- * all.
+ * flex-cli prompts through an inquirer module bound to stderr, so that a
+ * command which prompts and then writes to stdout can still be piped, and it
+ * sets no mask, so the key is not echoed at all. Both are matched here.
+ *
+ * The one place this deliberately does not match flex-cli, and the reason:
+ * given a key the Build API rejects, flex-cli prints its access denied page and
+ * then carries on, writing the rejected key over auth.edn, printing an empty
+ * "Hello !" and exiting 0, so a typo silently destroys a working credential
+ * (sharetribe/flex-cli#126). We print the same page, store nothing and exit 1.
+ * Every other difference from flex-cli is a bug on our side; this one is not.
  */
 export async function login(): Promise<void> {
   const prompt = inquirer.createPromptModule({ output: process.stderr });
