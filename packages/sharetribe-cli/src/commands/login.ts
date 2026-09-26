@@ -9,6 +9,7 @@
  */
 
 import inquirer from 'inquirer';
+import { Writable } from 'node:stream';
 import { writeAuth, getCurrentAdmin, type ApiError } from 'sharetribe-flex-build-sdk';
 import { printApiError, CURRENT_ADMIN_PATH } from '../util/api-error.js';
 import { printError } from '../util/output.js';
@@ -18,6 +19,49 @@ import { printError } from '../util/output.js';
  */
 function isApiError(error: unknown): error is ApiError {
   return typeof error === 'object' && error !== null && 'status' in error && 'code' in error;
+}
+
+/** Show-cursor escape our inquirer writes on close and flex-cli's does not */
+const SHOW_CURSOR = '\u001b[?25h';
+
+/**
+ * Wraps a stream, dropping the show-cursor escape on the way through
+ *
+ * Our inquirer restores the cursor when the prompt closes, which flex-cli's
+ * does not, leaving one escape in the output that nothing else accounts for.
+ * Everything else the prompt renders already matches byte for byte, so this
+ * filters the one sequence rather than reimplementing the prompt and risking
+ * the rest.
+ *
+ * A chunk boundary could split the escape, so any trailing bytes that could
+ * still turn into it are held back until the next write.
+ *
+ * @param target - Stream to write the filtered output to
+ */
+function withoutShowCursor(target: NodeJS.WriteStream): Writable {
+  let held = '';
+  return new Writable({
+    write(chunk, _encoding, callback) {
+      const text = held + String(chunk);
+      held = '';
+      // Hold back a trailing partial match, so a split escape is still caught.
+      for (let keep = SHOW_CURSOR.length - 1; keep > 0; keep -= 1) {
+        if (text.endsWith(SHOW_CURSOR.slice(0, keep))) {
+          held = text.slice(-keep);
+          break;
+        }
+      }
+      const emit = held ? text.slice(0, -held.length) : text;
+      target.write(emit.split(SHOW_CURSOR).join(''));
+      callback();
+    },
+    final(callback) {
+      if (held) {
+        target.write(held);
+      }
+      callback();
+    },
+  });
 }
 
 /**
@@ -35,7 +79,7 @@ function isApiError(error: unknown): error is ApiError {
  * Every other difference from flex-cli is a bug on our side; this one is not.
  */
 export async function login(): Promise<void> {
-  const prompt = inquirer.createPromptModule({ output: process.stderr });
+  const prompt = inquirer.createPromptModule({ output: withoutShowCursor(process.stderr) as never });
   const answers = await prompt([
     {
       type: 'password',
