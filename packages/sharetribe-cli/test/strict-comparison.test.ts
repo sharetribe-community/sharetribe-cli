@@ -76,14 +76,16 @@ function normalizeOutput(output: string, type: 'table' | 'json' | 'text'): strin
 }
 
 /**
- * Bound for a test that drives the live Build API
+ * Budget per live Build API call, for a test's own timeout
  *
- * Each of these spawns one or two CLIs that make real API calls, and vitest's
- * default 5 seconds is inside normal latency for that, so runs went red on slow
- * responses alone. runCli already caps a single hung CLI at 60 seconds, so this
- * only has to be clear of ordinary network time while still surfacing a hang.
+ * Spawning a CLI that makes a real API call takes a second or two, and vitest's
+ * default 5 seconds for a whole test is inside normal latency for even one of
+ * them, so runs went red on slow responses alone. Each live test multiplies this
+ * by the number of CLIs it runs, so a test that drives six calls gets six
+ * allowances rather than the same flat bound as one that drives two. runCli
+ * still caps a single hung CLI at 60 seconds, so a hang is surfaced either way.
  */
-const LIVE_API_TIMEOUT_MS = 30_000;
+const LIVE_API_CALL_MS = 15_000;
 
 /**
  * Bound for flex-cli's assets pull probe
@@ -247,7 +249,7 @@ describe('Strict Byte-by-Byte Comparison Tests', () => {
       // Empty lines should match
       expect(shareLines[0]).toBe(flexLines[0]); // Before table
       expect(shareLines[shareLines.length - 1]).toBe(flexLines[flexLines.length - 1]); // After table
-    }, LIVE_API_TIMEOUT_MS);
+    }, 2 * LIVE_API_CALL_MS);
 
     it('events table has consistent column structure', () => {
       const output = runCli(`events --marketplace ${MARKETPLACE} --limit 3`, 'sharetribe');
@@ -265,7 +267,7 @@ describe('Strict Byte-by-Byte Comparison Tests', () => {
       expect(header).toContain('Created at local time');
       expect(header).toContain('Source');
       expect(header).toContain('Actor');
-    }, LIVE_API_TIMEOUT_MS);
+    }, 2 * LIVE_API_CALL_MS);
   });
 
   describe('JSON output format', () => {
@@ -278,7 +280,7 @@ describe('Strict Byte-by-Byte Comparison Tests', () => {
       for (const line of nonEmptyLines(output)) {
         expect(() => JSON.parse(line)).not.toThrow();
       }
-    }, 15000);
+    }, LIVE_API_CALL_MS);
 
     it('events --json structure matches flex-cli', () => {
       const flexOutput = runCli(`events --marketplace ${MARKETPLACE} --json --limit 3`, 'flex');
@@ -296,7 +298,7 @@ describe('Strict Byte-by-Byte Comparison Tests', () => {
           Object.keys(JSON.parse(flexLines[i])).sort()
         );
       }
-    }, LIVE_API_TIMEOUT_MS);
+    }, 2 * LIVE_API_CALL_MS);
   });
 
   describe('help output format', () => {
@@ -397,7 +399,7 @@ describe('Strict Byte-by-Byte Comparison Tests', () => {
 
         expect(columns.length).toBeGreaterThan(0);
       }
-    }, LIVE_API_TIMEOUT_MS);
+    }, 2 * LIVE_API_CALL_MS);
   });
 
   describe('events command', () => {
@@ -418,7 +420,7 @@ describe('Strict Byte-by-Byte Comparison Tests', () => {
       // Empty lines match
       expect(shareLines[0]).toBe(flexLines[0]);
       expect(shareLines[shareLines.length - 1]).toBe(flexLines[flexLines.length - 1]);
-    }, LIVE_API_TIMEOUT_MS);
+    }, 2 * LIVE_API_CALL_MS);
 
     it('events --limit 5 matches flex-cli', () => {
       const flexOutput = runCli(`events --marketplace ${MARKETPLACE} --limit 5`, 'flex');
@@ -431,7 +433,7 @@ describe('Strict Byte-by-Byte Comparison Tests', () => {
       // marketplace with no events yields none from either, which is agreement.
       expect(shareLines.length).toBe(flexLines.length);
       expect(shareLines.length).toBeLessThanOrEqual(5);
-    }, LIVE_API_TIMEOUT_MS);
+    }, 2 * LIVE_API_CALL_MS);
 
     it('events --filter user/created matches flex-cli', () => {
       const flexOutput = runCli(`events --marketplace ${MARKETPLACE} --filter user/created --limit 3`, 'flex');
@@ -449,7 +451,7 @@ describe('Strict Byte-by-Byte Comparison Tests', () => {
       for (const line of dataLines) {
         expect(line).toContain('user/created');
       }
-    }, LIVE_API_TIMEOUT_MS);
+    }, 2 * LIVE_API_CALL_MS);
 
     it('events tail --help matches flex-cli', () => {
       const flexOutput = runCli('events tail --help', 'flex');
@@ -475,7 +477,7 @@ describe('Strict Byte-by-Byte Comparison Tests', () => {
 
       // Header matches exactly
       expect(shareLines[1]).toBe(flexLines[1]);
-    }, LIVE_API_TIMEOUT_MS);
+    }, 2 * LIVE_API_CALL_MS);
 
     it('process list --process=default-purchase matches flex-cli', () => {
       const flexOutput = runCli(`process list --marketplace ${MARKETPLACE} --process=default-purchase`, 'flex');
@@ -489,7 +491,7 @@ describe('Strict Byte-by-Byte Comparison Tests', () => {
 
       // Header matches
       expect(shareLines[1]).toBe(flexLines[1]);
-    }, LIVE_API_TIMEOUT_MS);
+    }, 2 * LIVE_API_CALL_MS);
   });
 
   describe('search command', () => {
@@ -499,7 +501,7 @@ describe('Strict Byte-by-Byte Comparison Tests', () => {
 
       // Should match byte-for-byte
       expect(shareOutput).toBe(flexOutput);
-    }, LIVE_API_TIMEOUT_MS);
+    }, 2 * LIVE_API_CALL_MS);
 
     it('search set --help matches flex-cli structure', () => {
       const flexOutput = runCli('search set --help', 'flex');
@@ -680,7 +682,8 @@ describe('Strict Byte-by-Byte Comparison Tests', () => {
       expect(unsetShareOutput).toBe(unsetFlexOutput);
       expect(setShareOutput).toBe(setFlexOutput);
       expect(verifyShareOutput).toBe(verifyFlexOutput);
-    }, 30000);
+      // Eight live calls: a list plus unset, set and verify, for each CLI.
+    }, 8 * LIVE_API_CALL_MS);
 
     it('events tail can be started and stopped', () => {
       // This test verifies events tail starts correctly with timeout
@@ -857,7 +860,8 @@ describe('Strict Byte-by-Byte Comparison Tests', () => {
       );
 
       expect(restoreShareOutput.toLowerCase()).toMatch(/enabled|success/);
-    }, 15000); // 15 second timeout
+      // Six live calls: enable, disable and enable again, for each CLI.
+    }, 6 * LIVE_API_CALL_MS);
 
     // Note: notifications preview/send require interactive template selection
     // and don't support --help, so we only test them via --help tests above
