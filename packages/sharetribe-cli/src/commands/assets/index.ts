@@ -608,10 +608,13 @@ async function pushAssets(
         marketplace,
         apiKeyForErrorPage()
       );
-      // flex-cli reads no new version out of the failed response, so it falls
-      // into its no-op branch and exits 0. Matched here because byte-for-byte
-      // compatibility is the goal, even though it hides a failed push.
-      console.log('Assets are up to date.');
+      // Deliberately unlike flex-cli, for the reason recorded in login. flex-cli
+      // reads no new version out of the failed response, falls into its no-op
+      // branch, prints "Assets are up to date." and exits 0, so a push that
+      // never landed is indistinguishable from one with nothing to do. Nothing
+      // checking an exit code can tell the difference, which makes a green CI
+      // run meaningless. We print the error page and exit non-zero.
+      process.exitCode = 1;
       return;
     }
     if (error && typeof error === 'object' && 'message' in error) {
