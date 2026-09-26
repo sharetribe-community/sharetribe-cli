@@ -1,43 +1,68 @@
 /**
  * Login command - interactive API key authentication
  *
- * Must match flex-cli behavior exactly:
- * - Prompt for API key
+ * Matches flex-cli's login (src/sharetribe/flex_cli/commands/login.cljs):
+ * - Prompt for the API key on stderr, input hidden
+ * - Verify it against /current_admin/show before storing anything
  * - Store in flex-cli's auth.edn (XDG_CONFIG_HOME, %LOCALAPPDATA% on Windows, else ~/.config)
- * - Display admin email on success
+ * - Greet the admin the key belongs to
  */
 
 import inquirer from 'inquirer';
-import { writeAuth } from 'sharetribe-flex-build-sdk';
+import { writeAuth, getCurrentAdmin, type ApiError } from 'sharetribe-flex-build-sdk';
+import { printApiError, CURRENT_ADMIN_PATH } from '../util/api-error.js';
+import { printError } from '../util/output.js';
+
+/**
+ * Tells an API error thrown by the SDK from any other failure
+ */
+function isApiError(error: unknown): error is ApiError {
+  return typeof error === 'object' && error !== null && 'status' in error && 'code' in error;
+}
 
 /**
  * Executes the login command
  *
- * Prompts for API key and stores it in auth.edn
+ * The key is verified before it is written, so a rejected key leaves any
+ * previously stored key untouched. flex-cli prompts through an inquirer module
+ * bound to stderr, so that a future command which prompts and then writes to
+ * stdout can still be piped, and it sets no mask, so the key is not echoed at
+ * all.
  */
 export async function login(): Promise<void> {
-  const answers = await inquirer.prompt([
+  const prompt = inquirer.createPromptModule({ output: process.stderr });
+  const answers = await prompt([
     {
       type: 'password',
       name: 'apiKey',
-      message: 'Enter API key:',
-      mask: '*',
-      validate: (input: string) => {
-        if (!input || input.trim().length === 0) {
-          return 'API key cannot be empty';
-        }
-        return true;
-      },
+      message: 'API key',
     },
   ]);
 
-  // Store the API key
-  writeAuth({ apiKey: answers.apiKey });
+  const apiKey: string = answers.apiKey;
 
-  // TODO: Validate API key by making a test request to get admin email
-  // For now, just confirm storage
-  console.log('Successfully logged in.');
+  let email: string;
+  try {
+    ({ email } = await getCurrentAdmin(apiKey));
+  } catch (error) {
+    if (isApiError(error)) {
+      printApiError(
+        { status: error.status, path: CURRENT_ADMIN_PATH, title: error.title, originalText: error.body },
+        '',
+        apiKey
+      );
+      process.exitCode = 1;
+      return;
+    }
+    if (error && typeof error === 'object' && 'message' in error) {
+      printError(error.message as string);
+    } else {
+      printError('Failed to log in');
+    }
+    process.exitCode = 1;
+    return;
+  }
 
-  // Note: flex-cli displays admin email after successful login
-  // We'll need to implement API client to fetch this
+  writeAuth({ apiKey });
+  console.log(`Hello ${email}!`);
 }

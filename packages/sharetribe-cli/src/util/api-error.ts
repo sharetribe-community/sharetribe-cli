@@ -12,6 +12,9 @@ import { errorPageLine, printErrorPage } from './output.js';
 
 const BIN = 'sharetribe-community-cli';
 
+/** Endpoint whose 401 means the key did not verify, rather than a marketplace refusal */
+export const CURRENT_ADMIN_PATH = '/current_admin/show';
+
 /** JSON Schema validation failures the API reported against a single asset */
 export interface AssetValidationError {
   /** Path of the asset that failed validation */
@@ -22,6 +25,8 @@ export interface AssetValidationError {
 
 export interface ApiErrorDetails {
   status: number;
+  /** Endpoint the call was made against, which selects the 401 page to print */
+  path?: string;
   /** errors[0].title from the response body, when the body carried one */
   title?: string;
   /** Raw response body, used as the reason when the body carried no title */
@@ -140,20 +145,29 @@ export function parseApiErrorBody(body: string, status: number): ApiErrorDetails
 /**
  * Prints the error page flex-cli prints for a failed API call
  *
- * The 401 page names the marketplace and the last four characters of the API
- * key, exactly as flex-cli does. flex-cli also has a 401 page specific to
- * /current_admin/show, which only its login command can reach and which is not
- * reproduced here.
+ * There are two 401 pages, as flex-cli has. A 401 from /current_admin/show
+ * means the key itself did not verify, so that page names only the key and
+ * tells the user to relogin. Any other 401 means the key is valid but cannot
+ * reach that marketplace, so that page names the marketplace too.
  *
  * @param details - Status and reason taken from the response
  * @param marketplace - Marketplace the call was made against
  * @param apiKey - API key the call used; only its last four characters are printed
  */
 export function printApiError(details: ApiErrorDetails, marketplace: string, apiKey: string): void {
-  const { status, title, originalText, assetErrors } = details;
+  const { status, path, title, originalText, assetErrors } = details;
 
   if (status === 500) {
     printErrorPage(['API call failed. Reason: Internal server error.']);
+    return;
+  }
+
+  if (status === 401 && path === CURRENT_ADMIN_PATH) {
+    printErrorPage([
+      'Error: Access denied',
+      `Failed to verify API key ending with ...${chalk.bold(apiKey.slice(-4))}`,
+      `Check your API key and use ${chalk.bold(`${BIN} login`)} to relogin.`,
+    ]);
     return;
   }
 

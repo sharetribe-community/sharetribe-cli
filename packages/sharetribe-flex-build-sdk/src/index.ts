@@ -23,6 +23,12 @@ export {
   type AliasResult,
 } from './processes.js';
 
+// Export admin identity lookup, which login uses to verify a key
+export {
+  getCurrentAdmin,
+  type CurrentAdmin,
+} from './admin.js';
+
 // Export search schema management functions
 export {
   listSearchSchemas,
