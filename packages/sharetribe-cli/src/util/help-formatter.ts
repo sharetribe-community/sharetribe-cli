@@ -134,7 +134,7 @@ function collectAllLeafCommands(cmd: Command): Array<{ name: string; description
   if (!cmd.parent) {
     results.unshift({
       name: 'help',
-      description: 'display help for Flex CLI'
+      description: 'display help for Sharetribe CLI'
     });
   }
 

@@ -46,7 +46,7 @@ program.configureOutput({
 // Configure the main program
 program
   .name('sharetribe-community-cli')
-  .description('CLI to interact with Sharetribe Flex')
+  .description('CLI to interact with a Sharetribe marketplace')
   .version(packageJson.version, '-V', 'output the version number')
   .option('-m, --marketplace <MARKETPLACE_ID>', 'marketplace identifier');
 
@@ -108,7 +108,7 @@ registerStripeCommands(program);
 // Register custom help command (to support "help process list" syntax)
 program
   .command('help [command...]')
-  .description('display help for Flex CLI')
+  .description('display help for Sharetribe CLI')
   .action((commandPath: string[]) => {
     if (!commandPath || commandPath.length === 0) {
       program.outputHelp();

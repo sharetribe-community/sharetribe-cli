@@ -39,7 +39,7 @@ const TEST_ALIAS = 'test-integration-alias';
  * paths passed in come from mkdtemp.
  */
 function runCli(command: string, cli: 'flex' | 'sharetribe'): string {
-  const cliName = cli === 'flex' ? 'flex-cli' : 'sharetribe-community-cli';
+  const cliName = cli === 'flex' ? 'sharetribe' : 'sharetribe-community-cli';
   const result = spawnSync(cliName, command.split(/\s+/).filter(Boolean), {
     encoding: 'utf-8',
     stdio: ['pipe', 'pipe', 'pipe'],
