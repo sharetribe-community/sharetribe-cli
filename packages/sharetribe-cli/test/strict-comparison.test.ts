@@ -27,7 +27,7 @@ function runCli(
   cli: 'flex' | 'sharetribe',
   envOverrides?: Record<string, string>
 ): string {
-  const cliName = cli === 'flex' ? 'flex-cli' : 'sharetribe-community-cli';
+  const cliName = cli === 'flex' ? 'sharetribe' : 'sharetribe-community-cli';
   const env = envOverrides ? { ...process.env, ...envOverrides } : process.env;
   const result = spawnSync(cliName, command.split(/\s+/).filter(Boolean), {
     encoding: 'utf-8',
@@ -117,7 +117,7 @@ interface CliAttempt {
  * @param timeoutMs - Bound after which the process is SIGKILLed
  */
 function attemptCli(command: string, cli: 'flex' | 'sharetribe', timeoutMs: number): CliAttempt {
-  const cliName = cli === 'flex' ? 'flex-cli' : 'sharetribe-community-cli';
+  const cliName = cli === 'flex' ? 'sharetribe' : 'sharetribe-community-cli';
   const result = spawnSync(cliName, command.split(/\s+/).filter(Boolean), {
     encoding: 'utf-8',
     stdio: ['pipe', 'pipe', 'pipe'],
@@ -691,7 +691,7 @@ describe('Strict Byte-by-Byte Comparison Tests', () => {
       const { spawn } = require('child_process');
 
       return new Promise<void>((resolve, reject) => {
-        const flexProc = spawn('flex-cli', ['events', 'tail', '--marketplace', MARKETPLACE, '--limit', '1']);
+        const flexProc = spawn('sharetribe', ['events', 'tail', '--marketplace', MARKETPLACE, '--limit', '1']);
         const shareProc = spawn('sharetribe-community-cli', ['events', 'tail', '--marketplace', MARKETPLACE, '--limit', '1']);
 
         let flexOutput = '';
